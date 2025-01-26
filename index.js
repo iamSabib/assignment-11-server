@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -83,6 +83,27 @@ async function run() {
     app.get('/services', async (req, res) => {
         try {
             const result = await servicesCollection.find({}).toArray();
+            res.send(result);
+        } catch (error) {
+            console.error(error);
+        }
+    });
+
+    //get a service by id
+    app.get('/services/:id', async (req, res) => {
+        id = new ObjectId(req.params.id);
+        try {
+            const result = await servicesCollection.findOne({ _id: id });
+            res.send(result);
+        } catch (error) {
+            console.error(error);
+        }
+    });
+
+    // get feature services get max 6
+    app.get('/featureservices', async (req, res) => {
+        try {
+            const result = await servicesCollection.find({}).limit(6).toArray();
             res.send(result);
         } catch (error) {
             console.error(error);
