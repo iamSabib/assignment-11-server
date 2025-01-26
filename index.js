@@ -145,9 +145,32 @@ async function run() {
         app.delete('/services/:id', async (req, res) => {
             id = new ObjectId(req.params.id);
             // console.log('k',id)
-            const result = await servicesCollection.deleteOne({_id : id})
+            const result = await servicesCollection.deleteOne({ _id: id })
             res.send(result);
         })
+
+        // Update a service by ID
+        app.put('/services/:id', async (req, res) => {
+            const id = new ObjectId(req.params.id);
+            const updatedService = req.body;
+
+            try {
+                const result = await servicesCollection.updateOne(
+                    { _id: id },
+                    { $set: updatedService }
+                );
+
+                if (result.matchedCount === 0) {
+                    return res.status(404).send({ message: 'Service not found' });
+                }
+
+                res.send({ success: true, message: 'Service updated successfully', result });
+            } catch (error) {
+                console.error('Error updating service:', error);
+                res.status(500).send({ message: 'Internal Server Error' });
+            }
+        });
+
 
         //book a service
         app.post('/book-services', async (req, res) => {
