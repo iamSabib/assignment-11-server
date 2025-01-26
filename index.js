@@ -109,7 +109,7 @@ async function run() {
             if (email !== req.user.email) return res.status(403).send({ message: 'Forbidden Access' });
 
             try {
-                const result = await servicesCollection.find({ email });
+                const result = await servicesCollection.find({ email }).toArray();
                 res.send(result);
             } catch (error) {
                 console.error('Error fetching services:', error);
@@ -140,6 +140,14 @@ async function run() {
             }
 
         });
+
+        //delete service
+        app.delete('/services/:id', async (req, res) => {
+            id = new ObjectId(req.params.id);
+            // console.log('k',id)
+            const result = await servicesCollection.deleteOne({_id : id})
+            res.send(result);
+        })
 
         //book a service
         app.post('/book-services', async (req, res) => {
