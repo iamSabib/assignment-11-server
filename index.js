@@ -78,6 +78,7 @@ async function run() {
 
     const database = client.db('ConsultHive');
     const servicesCollection = database.collection('consultservices');
+    const bookingCollection = database.collection('bookings');
 
     // get all services
     app.get('/services', async (req, res) => {
@@ -118,7 +119,17 @@ async function run() {
         } catch (error) {
             console.error(error);
         }
+
     });
+
+    //book a service
+    app.post('/book-services', async (req, res) => {
+        try {
+            const result = await bookingCollection.insertOne(req.body);
+        } catch (error) {
+            console.error(error)
+        }
+    })
 
   } finally {
     // Ensures that the client will close when you finish/error
