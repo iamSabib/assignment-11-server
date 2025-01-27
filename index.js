@@ -11,9 +11,17 @@ const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173'],
-    credentials: true
+    origin: [
+        'http://localhost:5173',
+        'https://movie-project-0.web.app',
+        'https://consulthive-0.web.app',
+        'https://consulthive-0.firebaseapp.com',
+    ],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
 }));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -120,7 +128,7 @@ async function run() {
 
         })
 
-        // get vendors all the orders (booked services)
+        // get all the orders placed by user
         app.get('/bookedservices', verifyToken, async (req, res) => {
             const email = req.query.email;
             if (email !== req.user.email) {
@@ -130,6 +138,40 @@ async function run() {
             try {
                 // Fetch all bookings for the logged-in user
                 const bookings = await bookingCollection.find({ userEmail: email }).toArray();
+
+                // Add service name and url to each booking
+                const enrichedBookings = await Promise.all(
+                    bookings.map(async (booking) => {
+                        const service = await servicesCollection.findOne(
+                            { _id: new ObjectId(booking.serviceId) },
+                            { projection: { name: 1, url: 1 } } // Retrieve only the fields we need
+                        );
+                        return {
+                            ...booking,
+                            serviceName: service?.name || 'Unknown Service',
+                            servicePhotoURL: service?.url || null,
+                        };
+                    })
+                );
+
+                res.send(enrichedBookings);
+            } catch (error) {
+                console.error('Error fetching booked services:', error);
+                res.status(500).send({ message: 'Internal Server Error' });
+            }
+        });
+
+
+        // get vendors all the orders (booked services)
+        app.get('/servicestodo', verifyToken, async (req, res) => {
+            const email = req.query.email;
+            if (email !== req.user.email) {
+                return res.status(403).send({ message: 'Forbidden Access' });
+            }
+
+            try {
+                // Fetch all bookings for the logged-in user
+                const bookings = await bookingCollection.find({ providerEmail: email }).toArray();
 
                 // Add service name and url to each booking
                 const enrichedBookings = await Promise.all(
