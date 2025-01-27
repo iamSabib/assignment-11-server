@@ -19,7 +19,7 @@ app.use(cookieParser());
 
 const verifyToken = (req, res, next) => {
     const token = req.cookies?.token;
-    // console.log('Cookies:', token);
+    console.log('Cookies:', token);
     if (!token) {
         console.log("No Token Found");
         return res.status(401).send({ message: 'Access Denied' });
@@ -119,6 +119,41 @@ async function run() {
             // res.send({message: "Nice"})
 
         })
+
+        // get vendors all the orders (booked services)
+        app.get('/bookedservices', verifyToken, async (req, res) => {
+            const email = req.query.email;
+            if (email !== req.user.email) {
+                return res.status(403).send({ message: 'Forbidden Access' });
+            }
+
+            try {
+                // Fetch all bookings for the logged-in user
+                const bookings = await bookingCollection.find({ userEmail: email }).toArray();
+
+                // Add service name and photoURL to each booking
+                const enrichedBookings = await Promise.all(
+                    bookings.map(async (booking) => {
+                        const service = await servicesCollection.findOne(
+                            { _id: new ObjectId(booking.serviceId) },
+                            { projection: { name: 1, photoURL: 1 } } // Retrieve only the fields we need
+                        );
+                        return {
+                            ...booking,
+                            serviceName: service?.name || 'Unknown Service',
+                            servicePhotoURL: service?.photoURL || null,
+                        };
+                    })
+                );
+
+                res.send(enrichedBookings);
+            } catch (error) {
+                console.error('Error fetching booked services:', error);
+                res.status(500).send({ message: 'Internal Server Error' });
+            }
+        });
+
+
 
         // get feature services get max 6
         app.get('/featureservices', async (req, res) => {
