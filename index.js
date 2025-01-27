@@ -131,17 +131,17 @@ async function run() {
                 // Fetch all bookings for the logged-in user
                 const bookings = await bookingCollection.find({ userEmail: email }).toArray();
 
-                // Add service name and photoURL to each booking
+                // Add service name and url to each booking
                 const enrichedBookings = await Promise.all(
                     bookings.map(async (booking) => {
                         const service = await servicesCollection.findOne(
                             { _id: new ObjectId(booking.serviceId) },
-                            { projection: { name: 1, photoURL: 1 } } // Retrieve only the fields we need
+                            { projection: { name: 1, url: 1 } } // Retrieve only the fields we need
                         );
                         return {
                             ...booking,
                             serviceName: service?.name || 'Unknown Service',
-                            servicePhotoURL: service?.photoURL || null,
+                            servicePhotoURL: service?.url || null,
                         };
                     })
                 );
@@ -216,6 +216,35 @@ async function run() {
                 console.error(error)
             }
         })
+
+        //update booked service status
+        app.patch('/bookedservices/:id', async (req, res) => {
+            const { id } = req.params; 
+            const { status } = req.body; 
+
+            console.log(status)
+
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).json({ error: 'Invalid booking ID.' });
+            }
+
+            if (!status || !['pending', 'working', 'completed'].includes(status)) {
+                return res.status(400).json({ error: 'Invalid or missing status.' });
+            }
+
+            try {
+                const result = await bookingCollection.updateOne(
+                    { _id: new ObjectId(id) }, 
+                    { $set: { status: status } } 
+                );
+
+                res.send(result)
+
+            } catch (error) {
+                console.error('Error updating status:', error);
+                res.status(500).json({ error: 'Internal server error.' });
+            }
+        });
 
     } finally {
         // Ensures that the client will close when you finish/error
